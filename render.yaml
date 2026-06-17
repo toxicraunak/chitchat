@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: tanjichat
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: MONGO_URI
+        value: mongodb+srv://factotask:Vaibhav0503V@cluster0.wmm2alz.mongodb.net/tgchat
+      - key: PORT
+        value: 3000

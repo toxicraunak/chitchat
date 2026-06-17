@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel - TanjiChat</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #0d1117;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #e8eaed;
+  min-height: 100vh;
+}
+.admin-header {
+  background: #17212b;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 10;
+}
+.admin-header h1 { font-size: 18px; font-weight: 700; }
+.admin-header a { color: #2AABEE; text-decoration: none; font-size: 14px; margin-left: auto; }
+
+.container { max-width: 800px; margin: 0 auto; padding: 20px 16px; }
+
+.card {
+  background: #17212b;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.card h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #2AABEE; display: flex; align-items: center; gap: 8px; }
+
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 12px; color: #7d8b99; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.form-control {
+  width: 100%; padding: 10px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; color: #e8eaed;
+  font-size: 14px; outline: none;
+  transition: border-color 0.2s;
+  font-family: monospace;
+}
+.form-control:focus { border-color: rgba(42,171,238,0.5); }
+
+.btn {
+  padding: 10px 20px; border-radius: 10px; border: none;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary { background: #2AABEE; color: #fff; }
+.btn-primary:hover { background: #1a9cd8; }
+.btn-danger { background: rgba(255,107,107,0.15); color: #ff6b6b; border: 1px solid rgba(255,107,107,0.2); }
+.btn-danger:hover { background: rgba(255,107,107,0.25); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+.alert {
+  padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px;
+}
+.alert-success { background: rgba(77,206,122,0.1); border: 1px solid rgba(77,206,122,0.3); color: #4dce7a; }
+.alert-error { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); color: #ff6b6b; }
+
+.sticker-grid-admin {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+.sticker-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 1;
+}
+.sticker-card img {
+  width: 100%; height: 75%; object-fit: contain; padding: 6px; display: block;
+}
+.sticker-card-bottom {
+  padding: 4px 6px;
+  font-size: 10px; color: #7d8b99;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: rgba(0,0,0,0.2);
+}
+.sticker-del-btn {
+  position: absolute; top: 4px; right: 4px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(255,107,107,0.8); border: none; color: #fff;
+  font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.2s;
+}
+.sticker-card:hover .sticker-del-btn { opacity: 1; }
+.sticker-card:active .sticker-del-btn { opacity: 1; }
+
+.empty-state {
+  text-align: center; padding: 32px 16px; color: #7d8b99; font-size: 14px;
+}
+
+.tab-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.tab-btn {
+  padding: 8px 16px; border-radius: 8px; border: none; font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: all 0.2s;
+  background: rgba(255,255,255,0.06); color: #7d8b99;
+}
+.tab-btn.active { background: rgba(42,171,238,0.15); color: #2AABEE; }
+
+.url-input-row { display: flex; gap: 8px; }
+.url-input-row .form-control { flex: 1; }
+
+.info-text { font-size: 12px; color: #7d8b99; margin-top: 6px; line-height: 1.5; }
+
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  background: rgba(42,171,238,0.15); color: #2AABEE; margin-left: 8px;
+}
+</style>
+</head>
+<body>
+
+<div class="admin-header">
+  <span>⚙️</span>
+  <h1>Admin Panel</h1>
+  <a href="/chat/tanji">← Back to Chat</a>
+</div>
+
+<div class="container">
+  <% const params = new URLSearchParams(''); %>
+  <% if (typeof success !== 'undefined' || (locals.success)) { %>
+  <div class="alert alert-success">✓ <%= locals.success || '' %></div>
+  <% } %>
+  <% if (typeof error !== 'undefined' || (locals.error)) { %>
+  <div class="alert alert-error">✗ <%= locals.error || '' %></div>
+  <% } %>
+
+  <!-- TELEGRAM SETTINGS -->
+  <div class="card">
+    <h2>📱 Telegram Settings</h2>
+    <form method="POST" action="/admin/settings">
+      <div class="form-group">
+        <label>Bot Token</label>
+        <input class="form-control" type="text" name="botToken" 
+          value="<%= botToken %>" placeholder="1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ">
+        <p class="info-text">BotFather se milne wala token. Voice call button click karne par yahi use hoga.</p>
+      </div>
+      <div class="form-group">
+        <label>Chat ID</label>
+        <input class="form-control" type="text" name="chatId" 
+          value="<%= chatId %>" placeholder="-100xxxxxxxxxx ya @username">
+        <p class="info-text">Jis Telegram chat me message jaega. @username ya numeric ID dono chalega.</p>
+      </div>
+      <button class="btn btn-primary" type="submit">💾 Save Settings</button>
+    </form>
+  </div>
+
+  <!-- STICKER MANAGEMENT -->
+  <div class="card">
+    <h2>😊 Stickers <span class="badge"><%= stickers.length %> total</span></h2>
+
+    <form method="POST" action="/admin/sticker">
+      <div class="form-group">
+        <label>Sticker Image / GIF URL</label>
+        <div class="url-input-row">
+          <input class="form-control" type="url" name="url" 
+            placeholder="https://example.com/sticker.png ya .gif" required>
+          <button class="btn btn-primary" type="submit">Add</button>
+        </div>
+        <p class="info-text">Direct image URL dalo — PNG, JPG, WebP, GIF sab chalega. Telegram sticker packs, Tenor, GIPHY etc. ke links bhi.</p>
+      </div>
+      <div class="form-group">
+        <label>Name (optional)</label>
+        <input class="form-control" type="text" name="name" placeholder="Sticker ka naam...">
+      </div>
+    </form>
+
+    <% if (stickers.length === 0) { %>
+    <div class="empty-state">
+      <div style="font-size:40px;margin-bottom:8px;">😶</div>
+      Abhi koi sticker nahi hai. Upar URL daalkar add karo!
+    </div>
+    <% } else { %>
+    <div class="sticker-grid-admin">
+      <% stickers.forEach(s => { %>
+      <div class="sticker-card">
+        <img src="<%= s.url %>" alt="<%= s.name %>" loading="lazy">
+        <div class="sticker-card-bottom"><%= s.name || 'Sticker' %></div>
+        <form method="POST" action="/admin/sticker/delete/<%= s._id %>" style="display:inline">
+          <button class="sticker-del-btn" type="submit" title="Delete">✕</button>
+        </form>
+      </div>
+      <% }) %>
+    </div>
+    <% } %>
+  </div>
+
+</div>
+
+<script>
+// Show alerts from URL params
+const urlParams = new URLSearchParams(window.location.search);
+const success = urlParams.get('success');
+const error = urlParams.get('error');
+if (success) {
+  const a = document.createElement('div');
+  a.className = 'alert alert-success';
+  a.textContent = '✓ ' + success;
+  document.querySelector('.container').prepend(a);
+  setTimeout(() => a.remove(), 3000);
+}
+if (error) {
+  const a = document.createElement('div');
+  a.className = 'alert alert-error';
+  a.textContent = '✗ ' + error;
+  document.querySelector('.container').prepend(a);
+}
+// Remove query params from URL
+window.history.replaceState({}, '', '/admin');
+</script>
+</body>
+</html>

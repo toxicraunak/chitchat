@@ -2,122 +2,197 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Admin Panel — TanjiChat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel - TanjiChat</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-:root{--bg:#0d1117;--card:#17212b;--accent:#2AABEE;--text:#e8eaed;--muted:#7d8b99;--border:rgba(255,255,255,.07);--safe-bot:env(safe-area-inset-bottom,0px);--safe-top:env(safe-area-inset-top,0px);}
-body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text);min-height:100vh;}
-.hdr{background:var(--card);padding:12px 16px;padding-top:calc(12px + var(--safe-top));border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;}
-.hdr h1{font-size:18px;font-weight:700;}
-.hdr a{color:var(--accent);text-decoration:none;font-size:14px;margin-left:auto;}
-.wrap{max-width:640px;margin:0 auto;padding:16px;padding-bottom:calc(24px + var(--safe-bot));}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:16px;}
-.card h2{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--accent);display:flex;align-items:center;gap:8px;}
-.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;background:rgba(42,171,238,.15);color:var(--accent);margin-left:6px;font-weight:600;}
-label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;}
-input[type=text],input[type=url]{width:100%;padding:10px 13px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;outline:none;margin-bottom:12px;font-family:monospace;}
-input[type=text]:focus,input[type=url]:focus{border-color:rgba(42,171,238,.5);}
-.btn{padding:11px 18px;border-radius:10px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
-.btn-primary{background:var(--accent);color:#fff;}
-.btn-primary:hover{background:#1a9cd8;}
-.btn-primary:active{opacity:.8;}
-.btn-danger{background:rgba(255,107,107,.1);color:#ff6b6b;border:1px solid rgba(255,107,107,.2);}
-.btn-danger:active{opacity:.8;}
-.btn-full{width:100%;justify-content:center;}
-.alert{padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;}
-.ok{background:rgba(77,206,122,.1);border:1px solid rgba(77,206,122,.3);color:#4dce7a;}
-.err{background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.3);color:#ff6b6b;}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #0d1117;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #e8eaed;
+  min-height: 100vh;
+}
+.admin-header {
+  background: #17212b;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 10;
+}
+.admin-header h1 { font-size: 18px; font-weight: 700; }
+.admin-header a { color: #2AABEE; text-decoration: none; font-size: 14px; margin-left: auto; }
 
-/* UPLOAD ZONE */
-.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative;margin-bottom:12px;}
-.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(42,171,238,.04);}
-.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-.upload-zone .icon{font-size:36px;margin-bottom:8px;}
-.upload-zone p{font-size:14px;color:var(--muted);}
-.upload-zone .hint{font-size:12px;color:rgba(255,255,255,.25);margin-top:6px;}
+.container { max-width: 800px; margin: 0 auto; padding: 20px 16px; }
 
-/* PROGRESS */
-.progress-bar{width:100%;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;display:none;margin-bottom:12px;}
-.progress-bar.show{display:block;}
-.progress-fill{height:100%;background:var(--accent);width:0%;transition:width .3s;border-radius:3px;}
+.card {
+  background: #17212b;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.card h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #2AABEE; display: flex; align-items: center; gap: 8px; }
 
-/* PACK LIST */
-.pack-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;}
-.pack-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-.pack-icon{width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;flex-shrink:0;}
-.pack-icon img{width:100%;height:100%;object-fit:contain;}
-.pack-meta{flex:1;min-width:0;}
-.pack-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.pack-sub{font-size:12px;color:var(--muted);margin-top:2px;}
-.pack-del{background:none;border:none;color:#ff6b6b;font-size:16px;cursor:pointer;padding:6px;border-radius:50%;flex-shrink:0;}
-.pack-del:active{background:rgba(255,107,107,.1);}
-.pack-preview{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;}
-.pack-preview::-webkit-scrollbar{display:none;}
-.preview-stk{width:52px;height:52px;border-radius:8px;background:rgba(255,255,255,.04);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;}
-.preview-stk img{width:100%;height:100%;object-fit:contain;padding:2px;}
-.more-badge{width:52px;height:52px;border-radius:8px;background:rgba(255,255,255,.06);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);text-align:center;}
-.empty{text-align:center;padding:28px;color:var(--muted);font-size:14px;}
-.empty .ei{font-size:40px;margin-bottom:8px;}
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 12px; color: #7d8b99; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.form-control {
+  width: 100%; padding: 10px 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; color: #e8eaed;
+  font-size: 14px; outline: none;
+  transition: border-color 0.2s;
+  font-family: monospace;
+}
+.form-control:focus { border-color: rgba(42,171,238,0.5); }
+
+.btn {
+  padding: 10px 20px; border-radius: 10px; border: none;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary { background: #2AABEE; color: #fff; }
+.btn-primary:hover { background: #1a9cd8; }
+.btn-danger { background: rgba(255,107,107,0.15); color: #ff6b6b; border: 1px solid rgba(255,107,107,0.2); }
+.btn-danger:hover { background: rgba(255,107,107,0.25); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+.alert {
+  padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px;
+}
+.alert-success { background: rgba(77,206,122,0.1); border: 1px solid rgba(77,206,122,0.3); color: #4dce7a; }
+.alert-error { background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.3); color: #ff6b6b; }
+
+.sticker-grid-admin {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+.sticker-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  aspect-ratio: 1;
+}
+.sticker-card img {
+  width: 100%; height: 75%; object-fit: contain; padding: 6px; display: block;
+}
+.sticker-card-bottom {
+  padding: 4px 6px;
+  font-size: 10px; color: #7d8b99;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: rgba(0,0,0,0.2);
+}
+.sticker-del-btn {
+  position: absolute; top: 4px; right: 4px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(255,107,107,0.8); border: none; color: #fff;
+  font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.2s;
+}
+.sticker-card:hover .sticker-del-btn { opacity: 1; }
+.sticker-card:active .sticker-del-btn { opacity: 1; }
+
+.empty-state {
+  text-align: center; padding: 32px 16px; color: #7d8b99; font-size: 14px;
+}
+
+.tab-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.tab-btn {
+  padding: 8px 16px; border-radius: 8px; border: none; font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: all 0.2s;
+  background: rgba(255,255,255,0.06); color: #7d8b99;
+}
+.tab-btn.active { background: rgba(42,171,238,0.15); color: #2AABEE; }
+
+.url-input-row { display: flex; gap: 8px; }
+.url-input-row .form-control { flex: 1; }
+
+.info-text { font-size: 12px; color: #7d8b99; margin-top: 6px; line-height: 1.5; }
+
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  background: rgba(42,171,238,0.15); color: #2AABEE; margin-left: 8px;
+}
 </style>
 </head>
 <body>
-<div class="hdr">
-  <span>⚙️</span><h1>Admin Panel</h1>
-  <a href="/chat/tanji">← Chat</a>
+
+<div class="admin-header">
+  <span>⚙️</span>
+  <h1>Admin Panel</h1>
+  <a href="/chat/tanji">← Back to Chat</a>
 </div>
 
-<div class="wrap">
-
-  <!-- ALERTS from URL params (shown via JS below) -->
-  <div id="alertBox"></div>
+<div class="container">
+  <% const params = new URLSearchParams(''); %>
+  <% if (typeof success !== 'undefined' || (locals.success)) { %>
+  <div class="alert alert-success">✓ <%= locals.success || '' %></div>
+  <% } %>
+  <% if (typeof error !== 'undefined' || (locals.error)) { %>
+  <div class="alert alert-error">✗ <%= locals.error || '' %></div>
+  <% } %>
 
   <!-- TELEGRAM SETTINGS -->
   <div class="card">
     <h2>📱 Telegram Settings</h2>
     <form method="POST" action="/admin/settings">
-      <label>Bot Token</label>
-      <input type="text" name="botToken" value="<%=botToken%>" placeholder="1234567890:ABCdefGHIjklMNO...">
-      <label>Chat ID</label>
-      <input type="text" name="chatId" value="<%=chatId%>" placeholder="-100xxxxxxxxxx ya @username">
-      <button class="btn btn-primary btn-full" type="submit">💾 Save Settings</button>
+      <div class="form-group">
+        <label>Bot Token</label>
+        <input class="form-control" type="text" name="botToken" 
+          value="<%= botToken %>" placeholder="1234567890:ABCdefGHIjklMNOpqrSTUvwxYZ">
+        <p class="info-text">BotFather se milne wala token. Voice call button click karne par yahi use hoga.</p>
+      </div>
+      <div class="form-group">
+        <label>Chat ID</label>
+        <input class="form-control" type="text" name="chatId" 
+          value="<%= chatId %>" placeholder="-100xxxxxxxxxx ya @username">
+        <p class="info-text">Jis Telegram chat me message jaega. @username ya numeric ID dono chalega.</p>
+      </div>
+      <button class="btn btn-primary" type="submit">💾 Save Settings</button>
     </form>
   </div>
 
-  <!-- STICKER PACK UPLOAD -->
+  <!-- STICKER MANAGEMENT -->
   <div class="card">
-    <h2>😊 Sticker Packs <span class="badge"><%=packs.length%></span></h2>
+    <h2>😊 Stickers <span class="badge"><%= stickers.length %> total</span></h2>
 
-    <form method="POST" action="/admin/upload-pack" enctype="multipart/form-data" id="packForm">
-      <div class="upload-zone" id="uploadZone">
-        <input type="file" name="wastickers" accept=".wastickers,.zip" id="packFile" onchange="onFileSelect(this)">
-        <div class="icon">📦</div>
-        <p id="uploadLabel">.wastickers file drop karo ya tap karo</p>
-        <div class="hint">WhatsApp sticker pack (.wastickers) — ZIP format</div>
+    <form method="POST" action="/admin/sticker">
+      <div class="form-group">
+        <label>Sticker Image / GIF URL</label>
+        <div class="url-input-row">
+          <input class="form-control" type="url" name="url" 
+            placeholder="https://example.com/sticker.png ya .gif" required>
+          <button class="btn btn-primary" type="submit">Add</button>
+        </div>
+        <p class="info-text">Direct image URL dalo — PNG, JPG, WebP, GIF sab chalega. Telegram sticker packs, Tenor, GIPHY etc. ke links bhi.</p>
       </div>
-      <div class="progress-bar" id="progBar"><div class="progress-fill" id="progFill"></div></div>
-      <button class="btn btn-primary btn-full" type="submit" id="uploadBtn" style="display:none">⬆️ Upload Pack</button>
+      <div class="form-group">
+        <label>Name (optional)</label>
+        <input class="form-control" type="text" name="name" placeholder="Sticker ka naam...">
+      </div>
     </form>
 
-    <% if(packs.length===0){ %>
-    <div class="empty"><div class="ei">📭</div>Abhi koi sticker pack nahi hai.<br>.wastickers file upload karo!</div>
+    <% if (stickers.length === 0) { %>
+    <div class="empty-state">
+      <div style="font-size:40px;margin-bottom:8px;">😶</div>
+      Abhi koi sticker nahi hai. Upar URL daalkar add karo!
+    </div>
     <% } else { %>
-    <% packs.forEach(pack=>{ %>
-    <div class="pack-card">
-      <div class="pack-header">
-        <div class="pack-icon">
-          <%if(pack.icon){%><img src="<%=pack.icon%>" alt=""><%}else{%>😊<%}%>
-        </div>
-        <div class="pack-meta">
-          <div class="pack-title"><%=pack.title%></div>
-          <div class="pack-sub"><%=pack.author?'by '+pack.author+' · ':''%><%=pack.count%> stickers</div>
-        </div>
-        <form method="POST" action="/admin/pack/delete/<%=pack._id%>" style="display:inline" onsubmit="return confirm('Delete this pack?')">
-          <button class="pack-del" type="submit" title="Delete">🗑</button>
+    <div class="sticker-grid-admin">
+      <% stickers.forEach(s => { %>
+      <div class="sticker-card">
+        <img src="<%= s.url %>" alt="<%= s.name %>" loading="lazy">
+        <div class="sticker-card-bottom"><%= s.name || 'Sticker' %></div>
+        <form method="POST" action="/admin/sticker/delete/<%= s._id %>" style="display:inline">
+          <button class="sticker-del-btn" type="submit" title="Delete">✕</button>
         </form>
       </div>
+      <% }) %>
     </div>
-    <% }) %>
     <% } %>
   </div>
 
@@ -125,41 +200,24 @@ input[type=text]:focus,input[type=url]:focus{border-color:rgba(42,171,238,.5);}
 
 <script>
 // Show alerts from URL params
-const urlP=new URLSearchParams(window.location.search);
-const box=document.getElementById('alertBox');
-if(urlP.get('success')){box.innerHTML=`<div class="alert ok">✓ ${decodeURIComponent(urlP.get('success'))}</div>`;}
-if(urlP.get('error')){box.innerHTML=`<div class="alert err">✗ ${decodeURIComponent(urlP.get('error'))}</div>`;}
-window.history.replaceState({},'','/admin');
-
-function onFileSelect(input){
-  if(input.files[0]){
-    document.getElementById('uploadLabel').textContent='📦 '+input.files[0].name;
-    document.getElementById('uploadBtn').style.display='flex';
-  }
+const urlParams = new URLSearchParams(window.location.search);
+const success = urlParams.get('success');
+const error = urlParams.get('error');
+if (success) {
+  const a = document.createElement('div');
+  a.className = 'alert alert-success';
+  a.textContent = '✓ ' + success;
+  document.querySelector('.container').prepend(a);
+  setTimeout(() => a.remove(), 3000);
 }
-
-// Drag and drop
-const zone=document.getElementById('uploadZone');
-zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag');});
-zone.addEventListener('dragleave',()=>zone.classList.remove('drag'));
-zone.addEventListener('drop',e=>{
-  e.preventDefault(); zone.classList.remove('drag');
-  const file=e.dataTransfer.files[0];
-  if(file){
-    const input=document.getElementById('packFile');
-    const dt=new DataTransfer(); dt.items.add(file); input.files=dt.files;
-    onFileSelect(input);
-  }
-});
-
-// Progress simulation on submit
-document.getElementById('packForm').addEventListener('submit',()=>{
-  const prog=document.getElementById('progBar');
-  const fill=document.getElementById('progFill');
-  prog.classList.add('show');
-  let pct=0; const t=setInterval(()=>{ pct=Math.min(pct+Math.random()*15,90); fill.style.width=pct+'%'; },300);
-  setTimeout(()=>{clearInterval(t);fill.style.width='100%';},8000);
-});
+if (error) {
+  const a = document.createElement('div');
+  a.className = 'alert alert-error';
+  a.textContent = '✗ ' + error;
+  document.querySelector('.container').prepend(a);
+}
+// Remove query params from URL
+window.history.replaceState({}, '', '/admin');
 </script>
 </body>
 </html>

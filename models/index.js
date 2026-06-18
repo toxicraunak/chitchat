@@ -1,19 +1,14 @@
 const mongoose = require('mongoose');
 
-// Message Schema — fileData as base64 for images
+// Message Schema
 const messageSchema = new mongoose.Schema({
   sender: { type: String, enum: ['tanji', 'hinata'], required: true },
   type: { type: String, enum: ['text', 'image', 'file', 'sticker'], default: 'text' },
   content: { type: String, default: '' },
-  // For images: store base64 data URI directly in mongo
-  fileData: { type: String, default: '' },   // base64 data URI (images only)
-  fileUrl: { type: String, default: '' },    // fallback / files
+  fileUrl: { type: String, default: '' },
   fileName: { type: String, default: '' },
   fileSize: { type: Number, default: 0 },
-  fileMime: { type: String, default: '' },
-  // Sticker references pack+index
-  stickerId: { type: mongoose.Schema.Types.ObjectId, default: null },
-  stickerUrl: { type: String, default: '' }, // base64 data URI
+  stickerUrl: { type: String, default: '' },
   replyTo: {
     id: { type: mongoose.Schema.Types.ObjectId, default: null },
     sender: { type: String, default: '' },
@@ -21,39 +16,26 @@ const messageSchema = new mongoose.Schema({
     type: { type: String, default: 'text' },
     stickerUrl: { type: String, default: '' }
   },
-  reactions: [{
-    emoji: String,
-    by: String  // 'tanji' or 'hinata'
-  }],
   read: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 
-// User Profile Schema — avatar as base64
+// User Profile Schema
 const profileSchema = new mongoose.Schema({
   user: { type: String, enum: ['tanji', 'hinata'], unique: true },
-  avatar: { type: String, default: '' },  // base64 data URI
+  avatar: { type: String, default: '' },
   updatedAt: { type: Date, default: Date.now }
 });
 
-// Sticker Pack Schema — each pack from .wastickers file
-const stickerPackSchema = new mongoose.Schema({
-  title: { type: String, default: 'Sticker Pack' },
-  author: { type: String, default: '' },
-  icon: { type: String, default: '' },  // base64 data URI of pack icon
-  createdAt: { type: Date, default: Date.now }
-});
-
-// Individual Sticker — linked to a pack
+// Sticker Schema
 const stickerSchema = new mongoose.Schema({
-  packId: { type: mongoose.Schema.Types.ObjectId, ref: 'StickerPack', required: true },
-  data: { type: String, required: true },  // base64 data URI (webp/png/gif)
-  index: { type: Number, default: 0 },
+  url: { type: String, required: true },
   name: { type: String, default: '' },
+  type: { type: String, enum: ['image', 'gif'], default: 'image' },
   createdAt: { type: Date, default: Date.now }
 });
 
-// Settings
+// Settings Schema (admin)
 const settingsSchema = new mongoose.Schema({
   key: { type: String, unique: true },
   value: { type: String, default: '' }
@@ -61,8 +43,7 @@ const settingsSchema = new mongoose.Schema({
 
 const Message = mongoose.model('Message', messageSchema);
 const Profile = mongoose.model('Profile', profileSchema);
-const StickerPack = mongoose.model('StickerPack', stickerPackSchema);
 const Sticker = mongoose.model('Sticker', stickerSchema);
 const Settings = mongoose.model('Settings', settingsSchema);
 
-module.exports = { Message, Profile, StickerPack, Sticker, Settings };
+module.exports = { Message, Profile, Sticker, Settings };

@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 // MongoDB
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://factotask:Vaibhav0503V@cluster0.wmm2alz.mongodb.net/tgchat';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://factotask:Vaibhav0503V@cluster0.wmm2alz.mongodb.net/tg';
 mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Error:', err));

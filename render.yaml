@@ -6,4 +6,4 @@ services:
     startCommand: node server.js
     envVars:
       - key: MONGO_URI
-        value: mongodb+srv://factotask:Vaibhav0503V@cluster0.wmm2alz.mongodb.net/tgchat
+        sync: false   # Set this manually in Render Dashboard → Environment

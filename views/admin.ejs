@@ -20,7 +20,6 @@ input[type=text],input[type=url]{width:100%;padding:10px 13px;background:rgba(25
 input[type=text]:focus,input[type=url]:focus{border-color:rgba(42,171,238,.5);}
 .btn{padding:11px 18px;border-radius:10px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
 .btn-primary{background:var(--accent);color:#fff;}
-.btn-primary:hover{background:#1a9cd8;}
 .btn-primary:active{opacity:.8;}
 .btn-danger{background:rgba(255,107,107,.1);color:#ff6b6b;border:1px solid rgba(255,107,107,.2);}
 .btn-danger:active{opacity:.8;}
@@ -29,7 +28,6 @@ input[type=text]:focus,input[type=url]:focus{border-color:rgba(42,171,238,.5);}
 .ok{background:rgba(77,206,122,.1);border:1px solid rgba(77,206,122,.3);color:#4dce7a;}
 .err{background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.3);color:#ff6b6b;}
 
-/* UPLOAD ZONE */
 .upload-zone{border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative;margin-bottom:12px;}
 .upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(42,171,238,.04);}
 .upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
@@ -37,14 +35,12 @@ input[type=text]:focus,input[type=url]:focus{border-color:rgba(42,171,238,.5);}
 .upload-zone p{font-size:14px;color:var(--muted);}
 .upload-zone .hint{font-size:12px;color:rgba(255,255,255,.25);margin-top:6px;}
 
-/* PROGRESS */
 .progress-bar{width:100%;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;display:none;margin-bottom:12px;}
 .progress-bar.show{display:block;}
 .progress-fill{height:100%;background:var(--accent);width:0%;transition:width .3s;border-radius:3px;}
 
-/* PACK LIST */
 .pack-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;}
-.pack-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.pack-header{display:flex;align-items:center;gap:10px;}
 .pack-icon{width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden;flex-shrink:0;}
 .pack-icon img{width:100%;height:100%;object-fit:contain;}
 .pack-meta{flex:1;min-width:0;}
@@ -52,13 +48,16 @@ input[type=text]:focus,input[type=url]:focus{border-color:rgba(42,171,238,.5);}
 .pack-sub{font-size:12px;color:var(--muted);margin-top:2px;}
 .pack-del{background:none;border:none;color:#ff6b6b;font-size:16px;cursor:pointer;padding:6px;border-radius:50%;flex-shrink:0;}
 .pack-del:active{background:rgba(255,107,107,.1);}
-.pack-preview{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;}
-.pack-preview::-webkit-scrollbar{display:none;}
-.preview-stk{width:52px;height:52px;border-radius:8px;background:rgba(255,255,255,.04);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;}
-.preview-stk img{width:100%;height:100%;object-fit:contain;padding:2px;}
-.more-badge{width:52px;height:52px;border-radius:8px;background:rgba(255,255,255,.06);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);text-align:center;}
 .empty{text-align:center;padding:28px;color:var(--muted);font-size:14px;}
 .empty .ei{font-size:40px;margin-bottom:8px;}
+
+/* Background images grid */
+.bg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+.bg-item{aspect-ratio:9/16;border-radius:10px;overflow:hidden;position:relative;background:rgba(255,255,255,.04);}
+.bg-item img{width:100%;height:100%;object-fit:cover;}
+.bg-del{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;background:rgba(255,107,107,.85);border:none;color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+.info-text{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;}
 </style>
 </head>
 <body>
@@ -68,8 +67,6 @@ input[type=text]:focus,input[type=url]:focus{border-color:rgba(42,171,238,.5);}
 </div>
 
 <div class="wrap">
-
-  <!-- ALERTS from URL params (shown via JS below) -->
   <div id="alertBox"></div>
 
   <!-- TELEGRAM SETTINGS -->
@@ -82,6 +79,35 @@ input[type=text]:focus,input[type=url]:focus{border-color:rgba(42,171,238,.5);}
       <input type="text" name="chatId" value="<%=chatId%>" placeholder="-100xxxxxxxxxx ya @username">
       <button class="btn btn-primary btn-full" type="submit">💾 Save Settings</button>
     </form>
+  </div>
+
+  <!-- BACKGROUND IMAGES -->
+  <div class="card">
+    <h2>🖼️ Chat Backgrounds <span class="badge"><%=bgImages.length%></span></h2>
+    <form method="POST" action="/admin/bg-upload" enctype="multipart/form-data" id="bgForm">
+      <div class="upload-zone" id="bgZone">
+        <input type="file" name="bgimage" accept="image/*" id="bgFile" onchange="onBgSelect(this)">
+        <div class="icon">🖼️</div>
+        <p id="bgLabel">Background image upload karo</p>
+        <div class="hint">JPG, PNG, WebP — chat wallpaper ke liye</div>
+      </div>
+      <button class="btn btn-primary btn-full" type="submit" id="bgUploadBtn" style="display:none">⬆️ Upload Background</button>
+    </form>
+
+    <% if(bgImages.length===0){ %>
+    <div class="empty"><div class="ei">🌄</div>Abhi koi background nahi hai.</div>
+    <% } else { %>
+    <div class="bg-grid">
+      <% bgImages.forEach(bg=>{ const id=bg.key.replace('bgImage_',''); %>
+      <div class="bg-item">
+        <img src="<%=bg.value%>" alt="">
+        <form method="POST" action="/admin/bg-delete/<%=id%>" onsubmit="return confirm('Delete this background?')">
+          <button class="bg-del" type="submit">✕</button>
+        </form>
+      </div>
+      <% }) %>
+    </div>
+    <% } %>
   </div>
 
   <!-- STICKER PACK UPLOAD -->
@@ -110,7 +136,7 @@ input[type=text]:focus,input[type=url]:focus{border-color:rgba(42,171,238,.5);}
         </div>
         <div class="pack-meta">
           <div class="pack-title"><%=pack.title%></div>
-          <div class="pack-sub"><%=pack.author?'by '+pack.author+' · ':''%><%=pack.count%> stickers</div>
+          <div class="pack-sub"><%=pack.author?'by '+pack.author+' · ':''%><%=pack.stickerCount||0%> stickers</div>
         </div>
         <form method="POST" action="/admin/pack/delete/<%=pack._id%>" style="display:inline" onsubmit="return confirm('Delete this pack?')">
           <button class="pack-del" type="submit" title="Delete">🗑</button>
@@ -124,11 +150,10 @@ input[type=text]:focus,input[type=url]:focus{border-color:rgba(42,171,238,.5);}
 </div>
 
 <script>
-// Show alerts from URL params
 const urlP=new URLSearchParams(window.location.search);
 const box=document.getElementById('alertBox');
-if(urlP.get('success')){box.innerHTML=`<div class="alert ok">✓ ${decodeURIComponent(urlP.get('success'))}</div>`;}
-if(urlP.get('error')){box.innerHTML=`<div class="alert err">✗ ${decodeURIComponent(urlP.get('error'))}</div>`;}
+if(urlP.get('success')) box.innerHTML=`<div class="alert ok">✓ ${decodeURIComponent(urlP.get('success'))}</div>`;
+if(urlP.get('error')) box.innerHTML=`<div class="alert err">✗ ${decodeURIComponent(urlP.get('error'))}</div>`;
 window.history.replaceState({},'','/admin');
 
 function onFileSelect(input){
@@ -137,8 +162,13 @@ function onFileSelect(input){
     document.getElementById('uploadBtn').style.display='flex';
   }
 }
+function onBgSelect(input){
+  if(input.files[0]){
+    document.getElementById('bgLabel').textContent='🖼️ '+input.files[0].name;
+    document.getElementById('bgUploadBtn').style.display='flex';
+  }
+}
 
-// Drag and drop
 const zone=document.getElementById('uploadZone');
 zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag');});
 zone.addEventListener('dragleave',()=>zone.classList.remove('drag'));
@@ -152,12 +182,10 @@ zone.addEventListener('drop',e=>{
   }
 });
 
-// Progress simulation on submit
 document.getElementById('packForm').addEventListener('submit',()=>{
-  const prog=document.getElementById('progBar');
-  const fill=document.getElementById('progFill');
+  const prog=document.getElementById('progBar'); const fill=document.getElementById('progFill');
   prog.classList.add('show');
-  let pct=0; const t=setInterval(()=>{ pct=Math.min(pct+Math.random()*15,90); fill.style.width=pct+'%'; },300);
+  let pct=0; const t=setInterval(()=>{pct=Math.min(pct+Math.random()*15,90);fill.style.width=pct+'%';},300);
   setTimeout(()=>{clearInterval(t);fill.style.width='100%';},8000);
 });
 </script>

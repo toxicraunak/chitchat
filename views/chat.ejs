@@ -88,17 +88,37 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 .msg-img{max-width:240px;max-height:240px;object-fit:cover;border-radius:10px;display:block;cursor:pointer;margin-bottom:2px;}
 .msg-img.loading{background:rgba(255,255,255,.05);min-height:120px;min-width:160px;}
 
+/* VIDEO */
+.msg-vid{max-width:260px;max-height:300px;border-radius:10px;display:block;background:#000;}
+
+/* LINKS IN MESSAGES */
+.msg-link{color:#7ec6f5;text-decoration:underline;word-break:break-all;}
+.row.out .msg-link{color:#bfe3ff;}
+
 /* FILE */
 .file-row{display:flex;align-items:center;gap:8px;text-decoration:none;color:inherit;min-width:160px;}
 .file-ico{font-size:26px;flex-shrink:0;}
 .file-nm{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
 .file-sz{font-size:11px;color:var(--muted);margin-top:1px;}
 
+/* DELETED MESSAGE */
+.bbl.deleted-bbl{opacity:.6;}
+.deleted-txt{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:5px;}
+.deleted-txt i{font-style:italic;}
+
 /* META */
-.meta{display:flex;align-items:center;gap:3px;justify-content:flex-end;margin-top:3px;}
+.meta{display:flex;align-items:center;gap:5px;justify-content:flex-end;margin-top:3px;}
 .meta-time{font-size:10px;color:rgba(255,255,255,.35);}
+.meta-edited{font-size:10px;color:rgba(255,255,255,.3);font-style:italic;}
 .meta-tick{font-size:12px;color:rgba(255,255,255,.35);}
 .meta-tick.rd{color:var(--accent);}
+
+/* EDIT BAR (reuses reply bar style) */
+.edit-bar{display:none;background:rgba(23,33,43,.97);border-top:1px solid var(--border);padding:8px 12px;align-items:center;gap:10px;flex-shrink:0;}
+.edit-bar.show{display:flex;}
+.edit-bar-info{flex:1;min-width:0;}
+.edit-bar-label{font-size:12px;color:#f5a623;font-weight:600;}
+.edit-bar-txt{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 /* REACTIONS */
 .r-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
@@ -163,6 +183,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 .ep-divider{width:100%;height:1px;background:var(--border);margin:6px 0;}
 .ep-reply{display:flex;align-items:center;gap:8px;padding:8px 6px;cursor:pointer;border-radius:10px;font-size:14px;color:var(--text);}
 .ep-reply:active{background:var(--hover);}
+.ep-reply.ep-danger{color:#ff6b6b;}
+.ep-reply.ep-danger:active{background:rgba(255,107,107,.12);}
 
 /* THEME PICKER */
 #themePicker{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:700;align-items:flex-end;justify-content:center;}
@@ -257,6 +279,16 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
     <button class="rp-close" onclick="clearReply()">✕</button>
   </div>
 
+  <!-- EDIT BAR -->
+  <div class="edit-bar" id="editBar">
+    <span style="color:#f5a623;font-size:18px;flex-shrink:0">✏️</span>
+    <div class="edit-bar-info">
+      <div class="edit-bar-label">Editing message</div>
+      <div class="edit-bar-txt" id="editBarTxt"></div>
+    </div>
+    <button class="rp-close" onclick="cancelEdit()">✕</button>
+  </div>
+
   <!-- STICKER PANEL -->
   <div id="stkPanel">
     <div class="stk-tabs" id="stkTabs"></div>
@@ -268,7 +300,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
     <button class="inp-ico" onclick="document.getElementById('fileInput').click()">📎</button>
     <textarea class="inp-box" id="msgBox" placeholder="Message..." rows="1"></textarea>
     <button class="inp-ico" id="stkBtn" onclick="toggleStk()">😊</button>
-    <button class="send-btn" onclick="doSend()">➤</button>
+    <button class="send-btn" id="sendBtn" onclick="doSend()">➤</button>
   </div>
 </div>
 
@@ -276,7 +308,7 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 <div id="emojiPicker">
   <div class="ep-scroll" id="epScroll"></div>
   <div class="ep-divider"></div>
-  <div class="ep-reply" onclick="replyFromPicker()">↩ <span>Reply to message</span></div>
+  <div id="pickerActions"></div>
 </div>
 
 <!-- THEME PICKER -->
@@ -320,7 +352,7 @@ const MY_NAME = ME==='tanji'?'Tanji':'Hinata';
 const OTHER_NAME = ME==='tanji'?'Hinata':'Tanji';
 const PAGE_SIZE = 20;
 
-let socket, replyData=null, pickerMsgId=null;
+let socket, replyData=null, pickerMsgId=null, pickerMsgData=null, editingMsgId=null;
 let typTimer=null, isTyp=false;
 let lazyPacks=[], packStickerCache={}, activePack=0;
 let hasMoreOlder=true, loadingOlder=false, oldestLoadedDate=null;
@@ -400,6 +432,29 @@ function connectSocket(){
       const meta=bbl.querySelector('.meta'); if(meta) bbl.insertBefore(rrow,meta); else bbl.appendChild(rrow);}
     renderReactions(rrow,reactions,msgId);
     if(!rrow.children.length) rrow.remove();
+  });
+
+  socket.on('messageEdited',({msgId,content})=>{
+    const row=document.querySelector(`[data-id="${msgId}"]`); if(!row) return;
+    row.dataset.content=content;
+    const bbl=row.querySelector('.bbl'); if(!bbl) return;
+    // Find the text content div (first div child that isn't rp-box/r-row/meta)
+    const textDiv=Array.from(bbl.children).find(c=>!c.classList.contains('rp-box')&&!c.classList.contains('r-row')&&!c.classList.contains('meta'));
+    if(textDiv){ textDiv.innerHTML=''; textDiv.appendChild(linkify(content)); }
+    // Add "edited" label if not present
+    const meta=bbl.querySelector('.meta');
+    if(meta && !meta.querySelector('.meta-edited')){
+      const ed=document.createElement('span'); ed.className='meta-edited'; ed.textContent='edited';
+      meta.insertBefore(ed, meta.firstChild);
+    }
+  });
+
+  socket.on('messageDeleted',({msgId})=>{
+    const row=document.querySelector(`[data-id="${msgId}"]`); if(!row) return;
+    row.dataset.deleted='1';
+    const bbl=row.querySelector('.bbl'); if(!bbl) return;
+    bbl.className='bbl deleted-bbl';
+    bbl.innerHTML='<div class="deleted-txt">🚫 <i>This message was deleted</i></div>';
   });
 
   socket.on('typing',d=>{if(d.sender!==ME){document.getElementById('typName').textContent=OTHER_NAME;document.getElementById('typRow').classList.add('show');scrollBot();}});
@@ -501,6 +556,7 @@ function mkMsgEl(msg){
   row.dataset.id=msg._id; row.dataset.date=new Date(msg.createdAt).toDateString();
   row.dataset.type=msg.type||'text'; row.dataset.content=msg.content||'';
   row.dataset.stk=msg.stickerUrl||''; row.dataset.sender=msg.sender;
+  row.dataset.deleted=msg.deleted?'1':'0';
 
   if(!mine){
     const av=document.createElement('div'); av.className='msg-av oth';
@@ -510,6 +566,21 @@ function mkMsgEl(msg){
   }
 
   const bbl=document.createElement('div');
+
+  // DELETED MESSAGE — show placeholder, no actions except nothing
+  if(msg.deleted){
+    bbl.className='bbl deleted-bbl';
+    const t=document.createElement('div'); t.className='deleted-txt'; t.innerHTML='🚫 <i>This message was deleted</i>';
+    bbl.appendChild(t);
+    const meta=document.createElement('div'); meta.className='meta';
+    const tm=document.createElement('span'); tm.className='meta-time'; tm.textContent=fmtTime(msg.createdAt); meta.appendChild(tm);
+    bbl.appendChild(meta);
+    row.appendChild(bbl);
+    const arr=document.createElement('div'); arr.className='sw-arr'; arr.textContent='↩'; row.appendChild(arr);
+    setupRowEvents(row,msg);
+    return row;
+  }
+
   if(msg.type==='sticker'){
     bbl.className='bbl stk';
     if(msg.replyTo?.sender) bbl.appendChild(mkRpBox(msg.replyTo));
@@ -520,7 +591,15 @@ function mkMsgEl(msg){
     if(msg.type==='image'){
       const src=msg.fileData||msg.fileUrl||'';
       if(src){const img=document.createElement('img');img.className='msg-img';img.src=src;img.loading='lazy';img.onclick=e=>{e.stopPropagation();openImgV(src);};bbl.appendChild(img);}
-      if(msg.content){const t=document.createElement('div');t.textContent=msg.content;t.style.whiteSpace='pre-wrap';bbl.appendChild(t);}
+      if(msg.content){const t=document.createElement('div');t.appendChild(linkify(msg.content));t.style.whiteSpace='pre-wrap';bbl.appendChild(t);}
+    } else if(msg.type==='video'){
+      const src=msg.fileUrl||msg.fileData||'';
+      const vid=document.createElement('video'); vid.className='msg-vid'; vid.src=src; vid.controls=true; vid.playsInline=true; vid.preload='metadata';
+      vid.onclick=e=>e.stopPropagation();
+      vid.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
+      vid.addEventListener('touchmove',e=>e.stopPropagation(),{passive:true});
+      bbl.appendChild(vid);
+      if(msg.content){const t=document.createElement('div');t.appendChild(linkify(msg.content));t.style.whiteSpace='pre-wrap';t.style.marginTop='4px';bbl.appendChild(t);}
     } else if(msg.type==='file'){
       const src=msg.fileUrl||msg.fileData||'';
       const a=document.createElement('a'); a.className='file-row'; a.href=src; a.download=msg.fileName||'file'; a.target='_blank'; a.onclick=e=>e.stopPropagation();
@@ -528,13 +607,14 @@ function mkMsgEl(msg){
       a.innerHTML=`<span class="file-ico">📄</span><div><div class="file-nm">${esc(msg.fileName||'File')}</div><div class="file-sz">${fmtSz(msg.fileSize)} · ${ext}</div></div>`;
       bbl.appendChild(a);
     } else {
-      const t=document.createElement('div'); t.style.whiteSpace='pre-wrap'; t.textContent=msg.content||''; bbl.appendChild(t);
+      const t=document.createElement('div'); t.style.whiteSpace='pre-wrap'; t.appendChild(linkify(msg.content||'')); bbl.appendChild(t);
     }
     if(msg.reactions?.length){
       const rrow=document.createElement('div'); rrow.className='r-row';
       renderReactions(rrow,msg.reactions,msg._id); bbl.appendChild(rrow);
     }
     const meta=document.createElement('div'); meta.className='meta';
+    if(msg.edited){const ed=document.createElement('span');ed.className='meta-edited';ed.textContent='edited';meta.appendChild(ed);}
     const tm=document.createElement('span'); tm.className='meta-time'; tm.textContent=fmtTime(msg.createdAt); meta.appendChild(tm);
     if(mine){const tk=document.createElement('span');tk.className='meta-tick'+(msg.read?' rd':'');tk.textContent=msg.read?'✓✓':'✓';meta.appendChild(tk);}
     bbl.appendChild(meta);
@@ -543,6 +623,31 @@ function mkMsgEl(msg){
   const arr=document.createElement('div'); arr.className='sw-arr'; arr.textContent='↩'; row.appendChild(arr);
   setupRowEvents(row,msg);
   return row;
+}
+
+// Convert URLs in text to clickable links, escaping everything else safely
+function linkify(text){
+  const frag=document.createDocumentFragment();
+  const urlRegex=/(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
+  let lastIndex=0; let match;
+  while((match=urlRegex.exec(text))!==null){
+    if(match.index>lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex,match.index)));
+    let url=match[0];
+    let href=url.startsWith('www.') ? 'https://'+url : url;
+    // Trim trailing punctuation that's likely not part of the URL
+    const trailing=href.match(/[.,!?;:)\]]+$/);
+    let trail='';
+    if(trailing){ trail=trailing[0]; href=href.slice(0,-trail.length); url=url.slice(0,-trail.length); }
+    const a=document.createElement('a');
+    a.href=href; a.textContent=url; a.target='_blank'; a.rel='noopener noreferrer';
+    a.className='msg-link';
+    a.onclick=e=>e.stopPropagation();
+    frag.appendChild(a);
+    if(trail) frag.appendChild(document.createTextNode(trail));
+    lastIndex=urlRegex.lastIndex;
+  }
+  if(lastIndex<text.length) frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+  return frag;
 }
 
 function appendMsg(msg, isNew){
@@ -577,10 +682,11 @@ function renderReactions(container,reactions,msgId){
 
 // ── SWIPE + LONG PRESS ──
 function setupRowEvents(row,msg){
+  if(row.dataset.deleted==='1') return; // no actions on deleted messages
   let tx0=0,ty0=0,swiped=false,pressing=false,pressT=null;
   row.addEventListener('touchstart',e=>{
     tx0=e.touches[0].clientX;ty0=e.touches[0].clientY;swiped=false;pressing=true;
-    pressT=setTimeout(()=>{if(pressing)showEmojiPicker(e.touches[0].clientX,e.touches[0].clientY,msg._id);},500);
+    pressT=setTimeout(()=>{if(pressing)showEmojiPicker(e.touches[0].clientX,e.touches[0].clientY,msg);},500);
   },{passive:true});
   row.addEventListener('touchmove',e=>{
     pressing=false;clearTimeout(pressT);
@@ -591,34 +697,95 @@ function setupRowEvents(row,msg){
     if(pull>=55&&!swiped){swiped=true;setReply(msg);if(navigator.vibrate)navigator.vibrate(28);}
   },{passive:true});
   row.addEventListener('touchend',()=>{pressing=false;clearTimeout(pressT);row.style.transform='';row.classList.remove('sw');row.querySelector('.sw-arr').style.opacity=0;});
-  row.addEventListener('contextmenu',e=>{e.preventDefault();showEmojiPicker(e.clientX,e.clientY,msg._id);});
+  row.addEventListener('contextmenu',e=>{e.preventDefault();showEmojiPicker(e.clientX,e.clientY,msg);});
 }
 
-// ── EMOJI PICKER ──
-function showEmojiPicker(x,y,msgId){
-  pickerMsgId=msgId;
+// ── EMOJI PICKER (+ message actions: reply / copy / edit / delete) ──
+function showEmojiPicker(x,y,msg){
+  pickerMsgId=msg._id;
+  pickerMsgData=msg;
   const p=document.getElementById('emojiPicker');
+  buildPickerActions(msg);
   p.classList.add('show');
-  const pw=p.offsetWidth||310, ph=p.offsetHeight||160;
+  const pw=p.offsetWidth||310, ph=p.offsetHeight||220;
   let left=x-pw/2, top=y-ph-12;
   left=Math.max(8,Math.min(left,window.innerWidth-pw-8));
   top=Math.max(10,top);
   p.style.left=left+'px'; p.style.top=top+'px';
   if(navigator.vibrate) navigator.vibrate(20);
 }
+
+function buildPickerActions(msg){
+  const wrap=document.getElementById('pickerActions');
+  wrap.innerHTML='';
+  const mine=msg.sender===ME;
+  const isText=msg.type==='text';
+  const hasCopyableText=isText && msg.content;
+
+  const mkAction=(icon,label,fn,danger)=>{
+    const d=document.createElement('div'); d.className='ep-reply'+(danger?' ep-danger':'');
+    d.innerHTML=`${icon} <span>${label}</span>`;
+    d.onclick=fn;
+    return d;
+  };
+
+  wrap.appendChild(mkAction('↩','Reply',replyFromPicker));
+  if(hasCopyableText) wrap.appendChild(mkAction('📋','Copy',copyFromPicker));
+  if(mine && isText) wrap.appendChild(mkAction('✏️','Edit',editFromPicker));
+  if(mine) wrap.appendChild(mkAction('🗑','Delete',deleteFromPicker,true));
+}
+
 function pickEmoji(emoji){
   if(!pickerMsgId) return;
   document.getElementById('emojiPicker').classList.remove('show');
   socket.emit('addReaction',{msgId:pickerMsgId,emoji,user:ME});
-  pickerMsgId=null;
+  pickerMsgId=null; pickerMsgData=null;
 }
 function replyFromPicker(){
   document.getElementById('emojiPicker').classList.remove('show');
-  if(!pickerMsgId) return;
-  const row=document.querySelector(`[data-id="${pickerMsgId}"]`); if(!row) return;
-  setReply({_id:pickerMsgId,sender:row.dataset.sender,type:row.dataset.type,content:row.dataset.content,stickerUrl:row.dataset.stk});
-  pickerMsgId=null;
+  if(!pickerMsgData) return;
+  setReply(pickerMsgData);
+  pickerMsgId=null; pickerMsgData=null;
 }
+function copyFromPicker(){
+  document.getElementById('emojiPicker').classList.remove('show');
+  if(!pickerMsgData) return;
+  copyText(pickerMsgData.content||'');
+  pickerMsgId=null; pickerMsgData=null;
+}
+function editFromPicker(){
+  document.getElementById('emojiPicker').classList.remove('show');
+  if(!pickerMsgData) return;
+  startEdit(pickerMsgData);
+  pickerMsgId=null; pickerMsgData=null;
+}
+function deleteFromPicker(){
+  document.getElementById('emojiPicker').classList.remove('show');
+  if(!pickerMsgData) return;
+  const id=pickerMsgData._id;
+  pickerMsgId=null; pickerMsgData=null;
+  confirmDelete(id);
+}
+
+function copyText(text){
+  if(!text){showToast('Nothing to copy',1500);return;}
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>showToast('📋 Copied!',1500)).catch(()=>fallbackCopy(text));
+  } else fallbackCopy(text);
+}
+function fallbackCopy(text){
+  const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); showToast('📋 Copied!',1500); }catch(e){ showToast('❌ Copy failed',1500); }
+  document.body.removeChild(ta);
+}
+
+function confirmDelete(msgId){
+  if(confirm('Delete this message?')){
+    socket.emit('deleteMessage',{msgId,user:ME});
+  }
+}
+
 document.addEventListener('click',e=>{if(!e.target.closest('#emojiPicker'))document.getElementById('emojiPicker').classList.remove('show');});
 
 // ── REPLY ──
@@ -635,10 +802,38 @@ function setReply(msg){
 function clearReply(){replyData=null;document.getElementById('rpBar').classList.remove('show');}
 function mkRp(m){return{id:m._id,sender:m.sender,content:m.content||'',type:m.type||'text',stickerUrl:m.stickerUrl||''};}
 
+// ── EDIT ──
+function startEdit(msg){
+  editingMsgId=msg._id;
+  clearReply();
+  document.getElementById('editBarTxt').textContent=msg.content||'';
+  document.getElementById('editBar').classList.add('show');
+  const box=document.getElementById('msgBox');
+  box.value=msg.content||'';
+  box.style.height='auto'; box.style.height=Math.min(box.scrollHeight,120)+'px';
+  box.focus();
+  document.getElementById('sendBtn').textContent='✓';
+}
+function cancelEdit(){
+  editingMsgId=null;
+  document.getElementById('editBar').classList.remove('show');
+  document.getElementById('msgBox').value='';
+  document.getElementById('msgBox').style.height='auto';
+  document.getElementById('sendBtn').textContent='➤';
+}
+
 // ── SEND ──
 function doSend(){
   const box=document.getElementById('msgBox');
   const txt=box.value.trim(); if(!txt) return;
+
+  if(editingMsgId){
+    socket.emit('editMessage',{msgId:editingMsgId,newContent:txt,user:ME});
+    cancelEdit();
+    box.value=''; box.style.height='auto';
+    return;
+  }
+
   const pl={sender:ME,type:'text',content:txt};
   if(replyData) pl.replyTo=mkRp(replyData);
   socket.emit('sendMessage',pl);
@@ -657,13 +852,19 @@ function stopTyp(){if(isTyp){isTyp=false;socket?.emit('stopTyping',{sender:ME});
 // ── FILE ──
 document.getElementById('fileInput').addEventListener('change',async e=>{
   const file=e.target.files[0]; if(!file) return;
+  if(file.size > 100*1024*1024){
+    showToast('❌ File too large (max 100MB)',3000);
+    e.target.value=''; return;
+  }
   showToast('⏳ Uploading...');
   const fd=new FormData(); fd.append('file',file);
   try{
     const res=await fetch('/api/upload',{method:'POST',body:fd});
     const d=await res.json();
+    if(!res.ok || d.error){ showToast('❌ '+(d.error||'Upload failed'),3000); e.target.value=''; return; }
     const pl={sender:ME};
     if(d.isImage){pl.type='image';pl.fileData=d.dataUri;pl.fileName=d.name;pl.fileSize=d.size;}
+    else if(d.isVideo){pl.type='video';pl.fileUrl=d.url;pl.fileName=d.name;pl.fileSize=d.size;pl.fileMime=d.mime||'';}
     else{pl.type='file';pl.fileUrl=d.url;pl.fileName=d.name;pl.fileSize=d.size;}
     if(replyData) pl.replyTo=mkRp(replyData);
     socket.emit('sendMessage',pl); clearReply();

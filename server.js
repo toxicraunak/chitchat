@@ -34,7 +34,7 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 const memStorage = multer.memoryStorage();
-const upload = multer({ storage: memStorage, limits: { fileSize: 25 * 1024 * 1024 } });
+const upload = multer({ storage: memStorage, limits: { fileSize: 100 * 1024 * 1024 } }); // 100MB for videos
 
 const tmpStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -140,15 +140,25 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file' });
     const isImage = req.file.mimetype.startsWith('image/');
+    const isVideo = req.file.mimetype.startsWith('video/');
     if (isImage) {
       const dataUri = bufToDataUri(req.file.buffer, req.file.mimetype);
       res.json({ ok: true, dataUri, name: req.file.originalname, size: req.file.size, isImage: true });
     } else {
+      // Videos and other files go to disk (too large for base64/mongo)
       const dir = path.join(__dirname, 'public/uploads');
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       const fname = Date.now() + '_' + req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
       fs.writeFileSync(path.join(dir, fname), req.file.buffer);
-      res.json({ ok: true, url: '/uploads/' + fname, name: req.file.originalname, size: req.file.size, isImage: false });
+      res.json({
+        ok: true,
+        url: '/uploads/' + fname,
+        name: req.file.originalname,
+        size: req.file.size,
+        isImage: false,
+        isVideo,
+        mime: req.file.mimetype
+      });
     }
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -338,6 +348,40 @@ io.on('connection', socket => {
     } catch (e) { console.error('reaction error:', e.message); }
   });
 
+  // Edit a text message — only original sender can edit, only text messages
+  socket.on('editMessage', async ({ msgId, newContent, user }) => {
+    try {
+      const msg = await Message.findById(msgId);
+      if (!msg) return;
+      if (msg.sender !== user) return; // only sender can edit their own message
+      if (msg.type !== 'text') return; // only text messages are editable
+      if (msg.deleted) return;
+      const trimmed = (newContent || '').trim();
+      if (!trimmed) return;
+      msg.content = trimmed;
+      msg.edited = true;
+      await msg.save();
+      io.to('chat').emit('messageEdited', { msgId, content: msg.content, edited: true });
+    } catch (e) { console.error('editMessage error:', e.message); }
+  });
+
+  // Delete a message — only original sender can delete
+  socket.on('deleteMessage', async ({ msgId, user }) => {
+    try {
+      const msg = await Message.findById(msgId);
+      if (!msg) return;
+      if (msg.sender !== user) return; // only sender can delete their own message
+      msg.deleted = true;
+      msg.content = '';
+      msg.fileData = '';
+      msg.fileUrl = '';
+      msg.stickerUrl = '';
+      msg.reactions = [];
+      await msg.save();
+      io.to('chat').emit('messageDeleted', { msgId });
+    } catch (e) { console.error('deleteMessage error:', e.message); }
+  });
+
   socket.on('typing',     data => socket.to('chat').emit('typing', data));
   socket.on('stopTyping', data => socket.to('chat').emit('stopTyping', data));
 
@@ -355,6 +399,18 @@ io.on('connection', socket => {
       io.to('chat').emit('onlineStatus', online);
     }
   });
+});
+
+// ── ERROR HANDLER (e.g. multer file-too-large) ──
+app.use((err, req, res, next) => {
+  if (err && err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ error: 'File too large (max 100MB)' });
+  }
+  if (err) {
+    console.error('Unhandled error:', err.message);
+    return res.status(500).json({ error: err.message || 'Server error' });
+  }
+  next();
 });
 
 const PORT = process.env.PORT || 3000;

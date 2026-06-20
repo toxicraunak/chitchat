@@ -3,10 +3,10 @@ const mongoose = require('mongoose');
 // Message Schema — fileData as base64 for images
 const messageSchema = new mongoose.Schema({
   sender: { type: String, enum: ['tanji', 'hinata'], required: true },
-  type: { type: String, enum: ['text', 'image', 'file', 'sticker'], default: 'text' },
+  type: { type: String, enum: ['text', 'image', 'video', 'file', 'sticker'], default: 'text' },
   content: { type: String, default: '' },
   fileData: { type: String, default: '' },   // base64 data URI (images only)
-  fileUrl: { type: String, default: '' },    // files on disk
+  fileUrl: { type: String, default: '' },    // files/videos on disk
   fileName: { type: String, default: '' },
   fileSize: { type: Number, default: 0 },
   fileMime: { type: String, default: '' },
@@ -21,6 +21,8 @@ const messageSchema = new mongoose.Schema({
   },
   reactions: [{ emoji: String, by: String }],
   read: { type: Boolean, default: false },
+  edited: { type: Boolean, default: false },
+  deleted: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
 // Index for fast pagination queries
